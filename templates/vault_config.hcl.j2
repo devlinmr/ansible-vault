@@ -1,0 +1,31 @@
+###
+### {{ ansible_managed }}
+###
+
+{% if vault_backend == 'consul' %}
+backend "consul" {
+  address = "{{ vault_consul_host }}:{{ vault_consul_port }}"
+  path = "{{ vault_consul_path }}"
+  advertise_addr = "https://{{ vault_host | default(ansible_default_ipv4.address) }}:{{ vault_https_port }}"
+}
+{% endif %}
+{% if vault_dev_environment %}
+
+listener "tcp" {
+  address = "{{ vault_local_host }}:{{ vault_http_port }}"
+  tls_disable = 1
+}
+
+listener "tcp" {
+  address = "{{ vault_host | default(ansible_default_ipv4.address) }}:{{ vault_http_port }}"
+  tls_disable = 1
+}
+{% endif %}
+
+listener "tcp" {
+  address = "{{ vault_host | default(ansible_default_ipv4.address) }}:{{ vault_https_port }}"
+  tls_key_file = "{{ vault_tls_key | default(vault_tls_default_key) }}"
+  tls_cert_file = "{{ vault_tls_cert | default(vault_tls_default_cert) }}"
+}
+
+disable_mlock = {{ vault_disable_mlock }}

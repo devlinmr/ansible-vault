@@ -1,0 +1,60 @@
+###################################################################################################
+
+- name: vault | ping
+
+  hosts: vault-nodes
+
+  gather_facts: false
+
+  roles:
+
+    - role: artemis/platform/ping
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: vault
+
+  hosts: vault-nodes
+
+  sudo: true
+
+  vars :
+
+     btrfs_label: '{{ home_name   }}'
+     btrfs_mount: '{{ home_base   }}'
+
+     user_base  : '{{ btrfs_mount }}'
+
+  roles:
+
+    -   role: artemis/platform/server
+
+    - { role: database/consul,
+        when                :  vault_backend == 'consul' and vault_consul_colocate,
+        consul_cluster_nodes: '{{ vault_consul_nodes }}' }
+
+    - { role: artemis/process-control/systemd,
+        systemd_name    : '{{ consul_service_name    }}' ,
+        systemd_run_as  : '{{ consul_service_run_as  }}' ,
+        systemd_command : '{{ consul_service_command }}' ,
+        systemd_state   : '{{ consul_service_state   }}' }
+
+    -   role: security/vault
+
+    - { role: artemis/process-control/systemd,
+        systemd_name    : '{{ vault_service_name    }}' ,
+        systemd_run_as  : '{{ vault_service_run_as  }}' ,
+        systemd_command : '{{ vault_service_command }}' ,
+        systemd_state   : '{{ vault_service_state   }}' }
+
+    -   role: artemis/platform/terminus
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################

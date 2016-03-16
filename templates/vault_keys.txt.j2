@@ -1,0 +1,25 @@
+###
+### {{ ansible_managed }}
+###
+# This file is NOT a permenant key store. 
+# Once the keys and root token are securely stashed off-box this file should be destroyed.
+
+{{ vault_keys.stdout }}
+
+{% if vault_root_token is defined %}
+# The vault instance just installed now needs to be unsealed, which can be achieved with the following commands:
+
+service {{ vault_service_name }} start
+
+sudo su - {{ vault_user }}
+
+export VAULT_ADDR=https://{{ vault_host }}:{{ vault_https_port }}
+export VAULT_TOKEN="{{ vault_root_token.stdout | default('incomplete') }}"
+export VAULT_SKIP_VERIFY=true
+
+{{ vault_bin_dir }}/vault unseal {{ vault_key1.stdout | default('incomplete') }}
+{{ vault_bin_dir }}/vault unseal {{ vault_key2.stdout | default('incomplete') }}
+{{ vault_bin_dir }}/vault unseal {{ vault_key3.stdout | default('incomplete') }}
+{% endif %}
+
+# End.

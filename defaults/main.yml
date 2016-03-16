@@ -1,0 +1,84 @@
+###################################################################################################
+
+vault_name:  vault
+
+vault_user:  '{{ vault_name }}'
+vault_group: '{{ vault_user }}'
+vault_host:  '{{ ansible_ssh_host }}'
+
+###################################################################################################
+
+vault_home       : '{{ home.stdout }}'
+vault_bin_dir    : '{{ vault_home }}/bin'
+vault_config_dir : '{{ vault_home }}/config'
+vault_config_file: '{{ vault_config_dir }}/vault_config.hcl'
+vault_init_flag  : '{{ vault_config_dir }}/vault_initialised.flg'
+
+vault_dir_umask  : '0750'
+
+###################################################################################################
+
+vault_backend        : consul
+vault_consul_colocate: true
+
+###################################################################################################
+
+vault_cluster_nodes     : '{{ groups["vault-nodes"] }}'
+
+###################################################################################################
+
+vault_consul_nodes: '{{ groups["consul-vault-nodes"] }}'
+vault_consul_host : '{{ ansible_ssh_host }}'
+vault_consul_port : 8500
+vault_consul_path : vault
+
+vault_local_host  : 127.0.0.1
+vault_http_port   : 8200
+vault_https_port  : 8243
+
+###################################################################################################
+
+vault_service_name   : '{{ vault_name }}'
+vault_service_state  : started
+vault_service_run_as : '{{ vault_user }}'
+vault_service_command: '{{ vault_bin_dir }}/vault server -config={{ vault_config_file }}'
+
+###################################################################################################
+
+vault_dev_environment: true
+
+vault_disable_mlock  : 'true'
+
+###################################################################################################
+
+vault_version        : 0.5.1
+vault_arch           : linux_amd64
+
+vault_repo_base_url  : http://releases.hashicorp.com/vault
+
+vault_zip_file       : 'vault_{{ vault_version }}_{{ vault_arch }}.zip'
+vault_zip_sha256     : 7319b6514cb5ca735d9886d7b7e1ed8730ee38b238bb1626564436b824206d12
+
+###################################################################################################
+
+vault_keys_stash_file_owner: root
+
+vault_keys_stash_filename  : vault_keys.txt
+vault_keys_stash_file      : /root/{{ vault_keys_stash_filename }}
+
+vault_keys_policy_filename : vault_read_only_policy.hcl
+vault_keys_policy_file     : /root/{{ vault_keys_policy_filename }}
+
+###################################################################################################
+
+vault_tls_dir                  : '{{ vault_home }}/ssl'
+vault_tls_default_key          : '{{ vault_tls_dir }}/vault_key.pem'
+vault_tls_default_cert         : '{{ vault_tls_dir }}/vault_crt.pem'
+
+vault_tls_self_sign_common_name: '/CN={{ ansible_fqdn }}'
+vault_tls_self_sign_crypt      : rsa
+vault_tls_self_sign_length     : 2048
+vault_tls_self_sign_days       : 1825
+vault_tls_self_sign_command    : 'openssl req -x509 -newkey {{ vault_tls_self_sign_crypt }}:{{ vault_tls_self_sign_length }} -keyout {{ vault_tls_default_key }} -out {{ vault_tls_default_cert }} -days {{ vault_tls_self_sign_days }} -subj "{{vault_tls_self_sign_common_name }}" -nodes'
+
+###################################################################################################

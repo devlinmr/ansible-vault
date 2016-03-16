@@ -1,0 +1,36 @@
+###################################################################################################
+
+- name: debian | dependencies
+
+  with_items: vault_dependencies
+
+  apt : name={{ item }} state=present install_recommends=false
+
+  tags:
+    - security
+    - vault
+    - debian
+
+###################################################################################################
+
+- name: debian | allow | vault http
+
+  ufw : port={{ vault_http_port }} proto=tcp rule=allow
+
+  tags:
+    - security
+    - vault
+    - debian
+
+###################################################################################################
+
+- name: debian | allow | vault https
+
+  ufw : port={{ vault_https_port }} proto=tcp rule=allow
+
+  tags:
+    - security
+    - vault
+    - debian
+
+###################################################################################################

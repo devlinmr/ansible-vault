@@ -1,0 +1,343 @@
+###################################################################################################
+
+- name: import
+
+  include_vars: '{{ ansible_os_family | lower }}'
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: debian
+
+  when: ansible_os_family | lower == 'debian'
+
+  include: debian.yml
+
+  tags:
+    - security
+    - vault
+    - debian
+
+###################################################################################################
+
+- name: ec2 | facts
+
+  ec2_facts:
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: user | create
+
+  user: name={{ vault_user }}
+       group={{ vault_group }}
+       state=present
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: discover | home
+
+  shell: echo ~{{ vault_user }}
+
+  changed_when: false
+
+  register: home
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: directory | config directory
+
+  sudo_user: '{{ vault_user }}'
+
+  file: dest={{ vault_config_dir }}
+       state=directory
+        mode={{ vault_dir_umask }}
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: directory | bin directory
+
+  sudo_user: '{{ vault_user }}'
+
+  file: dest={{ vault_bin_dir }}
+       state=directory
+        mode={{ vault_dir_umask }}
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: directory | ssl directory
+
+  sudo_user: '{{ vault_user }}'
+
+  file: dest={{ vault_tls_dir }}
+       state=directory
+        mode={{ vault_dir_umask }}
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: download | vault
+
+  get_url: url={{ vault_repo_base_url }}/{{ vault_zip_file }}
+          dest={{ vault_home }}/{{ vault_zip_file }}
+     sha256sum={{ vault_zip_sha256 }}
+
+  register: new_zip
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: extract
+
+  sudo_user: '{{ vault_user }}'
+
+  unarchive: src={{ vault_home }}/{{ vault_zip_file }}
+            dest={{ vault_bin_dir }}
+            copy=no
+         creates={{ vault_bin_dir }}/vault
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: generate self-signed keypair
+
+  sudo_user: '{{ vault_user }}'
+
+  when: vault_tls_key is not defined and vault_tls_crt is not defined
+
+  command: '{{ vault_tls_self_sign_command }}'
+  args:
+    creates: '{{ vault_tls_default_key }}'
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: config file
+
+  sudo_user: '{{ vault_user }}'
+
+  template: src=vault_config.hcl.j2 
+           dest={{ vault_config_file }}
+          force=no
+
+  register: config
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: service restart
+
+  when: config.changed
+
+  set_fact: vault_service_state=restarted
+
+  tags:
+    - security
+    - vault
+
+###################################################################################################
+
+- name: vault initial start
+
+  sudo_user: '{{ vault_user }}'
+
+  when: inventory_hostname == vault_cluster_nodes[0]
+
+  command: '{{ vault_service_command }}'
+  args:
+    creates: '{{ vault_init_flag }}'
+
+  async: 60
+
+  poll : 0
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault init
+
+  when: inventory_hostname == vault_cluster_nodes[0]
+
+  sudo_user: '{{ vault_user }}'
+
+  shell: '{{ vault_bin_dir }}/vault init -address=http://{{ vault_host }}:{{ vault_http_port }} && touch {{ vault_init_flag }}'
+  args:
+    creates: '{{ vault_init_flag }}'
+
+  register: vault_keys
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault stash keys output 1st run
+
+  when: vault_keys.changed and inventory_hostname == vault_cluster_nodes[0]
+
+  template: src={{ vault_keys_stash_filename }}.j2
+           dest={{ vault_keys_stash_file }}
+          owner={{ vault_keys_stash_file_owner }}
+          group={{ vault_keys_stash_file_owner }}
+           mode='0400'
+
+  register: vault_keys_restart
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault get root token
+
+  when: vault_keys_restart.changed
+
+  shell: grep 'Initial Root Token:' {{ vault_keys_stash_file }} | awk '{print $NF}'
+
+  register: vault_root_token
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault get key1
+
+  when: vault_keys_restart.changed
+
+  shell: grep 'Key 1:' {{ vault_keys_stash_file }} | awk '{print $NF}'
+
+  register: vault_key1
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault get key2
+
+  when: vault_keys_restart.changed
+
+  shell: grep 'Key 2:' {{ vault_keys_stash_file }} | awk '{print $NF}'
+
+  register: vault_key2
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault get key3
+
+  when: vault_keys_restart.changed
+
+  shell: grep 'Key 3:' {{ vault_keys_stash_file }} | awk '{print $NF}'
+
+  register: vault_key3
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault stash keys output 2nd run
+
+  when: new_zip.changed and config.changed and inventory_hostname == vault_cluster_nodes[0]
+
+  template: src={{ vault_keys_stash_filename }}.j2
+           dest={{ vault_keys_stash_file }}
+          owner={{ vault_keys_stash_file_owner }}
+          group={{ vault_keys_stash_file_owner }}
+           mode='0400'
+
+  register: vault_keys_restart
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: vault example read-only policy for jenkins
+
+  when: inventory_hostname == vault_cluster_nodes[0]
+
+  template: src={{ vault_keys_policy_filename }}.j2
+           dest={{ vault_keys_policy_file }}
+          owner={{ vault_keys_stash_file_owner }}
+          group={{ vault_keys_stash_file_owner }}
+           mode='0400'
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
+
+- name: force restart
+
+  when: vault_keys_restart.changed and inventory_hostname == vault_cluster_nodes[0]
+
+  set_fact: bounce=true
+
+  tags:
+    - security
+    - vault
+    - init
+
+###################################################################################################
