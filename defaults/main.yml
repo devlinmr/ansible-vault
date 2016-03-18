@@ -23,7 +23,11 @@ vault_consul_colocate: true
 
 ###################################################################################################
 
-vault_cluster_nodes     : '{{ groups["vault-nodes"] }}'
+vault_cluster_nodes: '{{ groups["vault-nodes"] }}'
+
+###################################################################################################
+
+consul_cluster_nodes: '{{ groups["vault-nodes"] }}'
 
 ###################################################################################################
 
@@ -54,7 +58,7 @@ vault_disable_mlock  : 'true'
 vault_version        : 0.5.1
 vault_arch           : linux_amd64
 
-vault_repo_base_url  : http://releases.hashicorp.com/vault
+vault_repo_base_url  : 'http://releases.hashicorp.com/vault/{{ vault_version }}'
 
 vault_zip_file       : 'vault_{{ vault_version }}_{{ vault_arch }}.zip'
 vault_zip_sha256     : 7319b6514cb5ca735d9886d7b7e1ed8730ee38b238bb1626564436b824206d12

@@ -7,7 +7,7 @@
   apt : name={{ item }} state=present install_recommends=false
 
   tags:
-    - security
+    - brain
     - vault
     - debian
 
@@ -18,7 +18,7 @@
   ufw : port={{ vault_http_port }} proto=tcp rule=allow
 
   tags:
-    - security
+    - brain
     - vault
     - debian
 
@@ -29,7 +29,7 @@
   ufw : port={{ vault_https_port }} proto=tcp rule=allow
 
   tags:
-    - security
+    - brain
     - vault
     - debian
 

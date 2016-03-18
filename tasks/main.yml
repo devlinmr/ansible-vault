@@ -5,7 +5,7 @@
   include_vars: '{{ ansible_os_family | lower }}'
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -17,7 +17,7 @@
   include: debian.yml
 
   tags:
-    - security
+    - brain
     - vault
     - debian
 
@@ -28,7 +28,18 @@
   ec2_facts:
 
   tags:
-    - security
+    - brain
+    - vault
+
+###################################################################################################
+
+- name: group | create
+
+  group: name={{ vault_group  }}
+        state=present
+
+  tags:
+    - brain
     - vault
 
 ###################################################################################################
@@ -40,7 +51,7 @@
        state=present
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -54,7 +65,7 @@
   register: home
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -68,7 +79,7 @@
         mode={{ vault_dir_umask }}
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -82,7 +93,7 @@
         mode={{ vault_dir_umask }}
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -96,7 +107,7 @@
         mode={{ vault_dir_umask }}
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -110,7 +121,7 @@
   register: new_zip
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -125,7 +136,7 @@
          creates={{ vault_bin_dir }}/vault
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -141,7 +152,7 @@
     creates: '{{ vault_tls_default_key }}'
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -157,7 +168,7 @@
   register: config
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -169,7 +180,7 @@
   set_fact: vault_service_state=restarted
 
   tags:
-    - security
+    - brain
     - vault
 
 ###################################################################################################
@@ -189,9 +200,8 @@
   poll : 0
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -208,9 +218,8 @@
   register: vault_keys
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -227,9 +236,8 @@
   register: vault_keys_restart
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -242,9 +250,8 @@
   register: vault_root_token
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -257,9 +264,8 @@
   register: vault_key1
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -272,9 +278,8 @@
   register: vault_key2
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -287,9 +292,8 @@
   register: vault_key3
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -306,9 +310,8 @@
   register: vault_keys_restart
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
@@ -323,21 +326,57 @@
            mode='0400'
 
   tags:
-    - security
+    - brain
     - vault
-    - init
 
 ###################################################################################################
 
-- name: force restart
+- name: service file
 
-  when: vault_keys_restart.changed and inventory_hostname == vault_cluster_nodes[0]
+  template: src=vault.service.j2
+           dest={{ systemd_service_base }}/vault.service
+          force=no
 
-  set_fact: bounce=true
+  register: service
 
   tags:
-    - security
+    - brain
     - vault
-    - init
+
+###################################################################################################
+
+- name: reload
+
+  command: 'systemctl daemon-reload'
+
+  when: service.changed
+
+  tags:
+    - brain
+    - vault
+
+###################################################################################################
+
+- name: service configure
+
+  service: name={{ vault_name }}
+        enabled={{ vault_enabled | default('yes') }}
+          state='started'
+
+  tags:
+    - brain
+    - vault
+
+###################################################################################################
+
+- name: service restart
+
+  set_fact: vaultl_service_state=restarted
+
+  when: config.changed or service.changed
+
+  tags:
+    - brain
+    - vault
 
 ###################################################################################################
