@@ -2,9 +2,9 @@
 
 - name: vault
 
-  hosts: vault-nodes
+  hosts: vault
 
-  sudo: true
+  become: true
 
   roles:
 

@@ -27,11 +27,7 @@ vault_cluster_nodes: '{{ groups["vault-nodes"] }}'
 
 ###################################################################################################
 
-consul_cluster_nodes: '{{ groups["vault-nodes"] }}'
-
-###################################################################################################
-
-vault_consul_nodes: '{{ groups["consul-vault-nodes"] }}'
+vault_consul_nodes: '{{ vault_cluster_nodes }}'
 vault_consul_host : '{{ ansible_ssh_host }}'
 vault_consul_port : 8500
 vault_consul_path : vault
@@ -76,13 +72,13 @@ vault_keys_policy_file     : /root/{{ vault_keys_policy_filename }}
 ###################################################################################################
 
 vault_tls_dir                  : '{{ vault_home }}/ssl'
-vault_tls_default_key          : '{{ vault_tls_dir }}/vault_key.pem'
-vault_tls_default_cert         : '{{ vault_tls_dir }}/vault_crt.pem'
+vault_tls_key_file             : '{{ vault_tls_dir }}/vault_tls.key'
+vault_tls_cert_file            : '{{ vault_tls_dir }}/vault_tls.crt'
 
 vault_tls_self_sign_common_name: '/CN={{ ansible_fqdn }}'
 vault_tls_self_sign_crypt      : rsa
 vault_tls_self_sign_length     : 2048
 vault_tls_self_sign_days       : 1825
-vault_tls_self_sign_command    : 'openssl req -x509 -newkey {{ vault_tls_self_sign_crypt }}:{{ vault_tls_self_sign_length }} -keyout {{ vault_tls_default_key }} -out {{ vault_tls_default_cert }} -days {{ vault_tls_self_sign_days }} -subj "{{vault_tls_self_sign_common_name }}" -nodes'
+vault_tls_self_sign_command    : 'openssl req -x509 -newkey {{ vault_tls_self_sign_crypt }}:{{ vault_tls_self_sign_length }} -keyout {{ vault_tls_key_file }} -out {{ vault_tls_cert_file }} -days {{ vault_tls_self_sign_days }} -subj "{{vault_tls_self_sign_common_name }}" -nodes'
 
 ###################################################################################################

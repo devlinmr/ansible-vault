@@ -1,0 +1,10 @@
+[Unit]
+Description=Vault Server
+
+[Service]
+WorkingDirectory={{ vault_home }}
+ExecStart={{ vault_service_command }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

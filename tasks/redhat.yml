@@ -1,36 +1,48 @@
 ###################################################################################################
 
-- name: debian | dependencies
+- name: redhat | dependencies
 
   with_items: '{{ vault_dependencies }}'
 
-  apt : name={{ item }} state=present install_recommends=false
+  yum: name={{ item }} state=present
 
   tags:
     - brain
     - vault
-    - debian
+    - redhat
 
 ###################################################################################################
 
-- name: debian | allow | vault http
+- name: redhat | allow | http
 
-  ufw : port={{ vault_http_port }} proto=tcp rule=allow
+  when: host_firewall
+
+  firewalld: port={{ vault_http_port }}/tcp
+            state=enabled
+        permanent=true
+
+  register: config
 
   tags:
     - brain
     - vault
-    - debian
+    - redhat
 
 ###################################################################################################
 
-- name: debian | allow | vault https
+- name: redhat | allow | https
 
-  ufw : port={{ vault_https_port }} proto=tcp rule=allow
+  when: host_firewall
+
+  firewalld: port={{ vault_https_port }}/tcp
+            state=enabled
+        permanent=true
+
+  register: config
 
   tags:
     - brain
     - vault
-    - debian
+    - redhat
 
 ###################################################################################################

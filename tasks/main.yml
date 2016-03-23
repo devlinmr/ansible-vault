@@ -20,16 +20,20 @@
     - brain
     - vault
     - debian
+    - debian
 
 ###################################################################################################
 
-- name: ec2 | facts
+- name: redhat
 
-  ec2_facts:
+  when: ansible_os_family | lower == 'redhat'
+
+  include: redhat.yml
 
   tags:
     - brain
-    - vault
+    - consul
+    - redhat
 
 ###################################################################################################
 
@@ -72,7 +76,7 @@
 
 - name: directory | config directory
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
   file: dest={{ vault_config_dir }}
        state=directory
@@ -86,7 +90,7 @@
 
 - name: directory | bin directory
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
   file: dest={{ vault_bin_dir }}
        state=directory
@@ -100,7 +104,7 @@
 
 - name: directory | ssl directory
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
   file: dest={{ vault_tls_dir }}
        state=directory
@@ -128,7 +132,7 @@
 
 - name: extract
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
   unarchive: src={{ vault_home }}/{{ vault_zip_file }}
             dest={{ vault_bin_dir }}
@@ -141,15 +145,46 @@
 
 ###################################################################################################
 
+- name: pre-prepared ssl key
+
+  become_user: '{{ vault_user }}'
+
+  when: vault_tls_key is defined and vault_tls_key is not none
+
+  template: src=vault_tls.key.j2
+           dest={{ vault_tls_dir }}/vault_tls.key
+           mode=0600
+
+  tags:
+    - brain
+    - vault
+
+###################################################################################################
+
+- name: pre-prepared ssl crt
+
+  become_user: '{{ vault_user }}'
+
+  when: vault_tls_crt is defined and vault_tls_crt is not none
+
+  template: src=vault_tls.crt.j2
+           dest={{ vault_tls_dir }}/vault_tls.key
+
+  tags:
+    - brain
+    - vault
+
+###################################################################################################
+
 - name: generate self-signed keypair
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
-  when: vault_tls_key is not defined and vault_tls_crt is not defined
+  when: vault_tls_key is not defined or vault_tls_crt is not defined
 
   command: '{{ vault_tls_self_sign_command }}'
   args:
-    creates: '{{ vault_tls_default_key }}'
+    creates: '{{ vault_tls_key_file }}'
 
   tags:
     - brain
@@ -159,13 +194,26 @@
 
 - name: config file
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
   template: src=vault_config.hcl.j2 
            dest={{ vault_config_file }}
           force=no
 
   register: config
+
+  tags:
+    - brain
+    - vault
+
+###################################################################################################
+
+- name: config perms
+
+  file: path={{ vault_home }}
+       state=directory
+        mode="o-rwx"
+     recurse=true
 
   tags:
     - brain
@@ -187,7 +235,7 @@
 
 - name: vault initial start
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
   when: inventory_hostname == vault_cluster_nodes[0]
 
@@ -209,7 +257,7 @@
 
   when: inventory_hostname == vault_cluster_nodes[0]
 
-  sudo_user: '{{ vault_user }}'
+  become_user: '{{ vault_user }}'
 
   shell: '{{ vault_bin_dir }}/vault init -address=http://{{ vault_host }}:{{ vault_http_port }} && touch {{ vault_init_flag }}'
   args:

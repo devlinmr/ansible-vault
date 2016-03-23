@@ -24,8 +24,8 @@ listener "tcp" {
 
 listener "tcp" {
   address = "{{ vault_host | default(ansible_default_ipv4.address) }}:{{ vault_https_port }}"
-  tls_key_file = "{{ vault_tls_key | default(vault_tls_default_key) }}"
-  tls_cert_file = "{{ vault_tls_cert | default(vault_tls_default_cert) }}"
+  tls_key_file = "{{ vault_tls_key | default(vault_tls_key_file) }}"
+  tls_cert_file = "{{ vault_tls_cert | default(vault_tls_cert_file) }}"
 }
 
 disable_mlock = {{ vault_disable_mlock }}
